@@ -1,41 +1,54 @@
-/* Basic concept:
- *  - act as master irrigation controller by activating attached relay 
+/* Equipment:
+ *    - Amica labelled esp8266 (use nodemcu board setting)
+ *    - wired power (for now): 9v? 24v AC?
+ *  
+ *  Basic concept:
+ *  - monitor chicken coop:
+ *    - door
+ *    - temperature
+ *    - sound levels
+ *    - egg presence
+ *  - Control environment:
+ *    - misters
+ *    - open door     
  *  - connect to mqtt server
  *  - respond to mqtt commands
  *  - run webserver for status control and configuration purposes.
  *  
  *  pubs: 
- *    (add rg/ to all addresses?)  
- *    - garden/master-irrigation/status > send upon connected and when request received through status subscription
- *    - garden/census/responses > send identifying information when pinged at garden/census/ping > payload:{"address":"garden/master-irrigation","url":"192.....","resources":[]}
- *  
+ *    (alternate root will be 'house'. No need for 'home' unless monitoring other locations)
+ *    - garden/coop > broadcast status events here. Differentiate type of event in payload  (e.g. {"event_type":"connected"} or {"event_type":"sensor activation", "resource":"main_door", "value":"open")
+ *    - garden/census > send identifying information when pinged at garden/census/ping > payload:{"address":"garden/coop","url":"192.....","resources":[]}
  *  
  *  subs
- *    - garden/master-irrigation/GET  (here unit itself is the resource. Respond to payload, e.g. 'status' (on or off). This as opposed to portables/esp2/status/GET where payload would be irrelevant)
- *    - garden/master-irrigation/relay/PUT - 'on' or 'off' to control master solenoid valve 
+ *    - garden/coop/GET > reply on garden/coop. Respond to payload, e.g. 'status' or 'main_door' (Alternate scheme would be to listen on garden/coop/status/GET)
+ *    - garden/coop/mister/PUT - 'on' or 'off' to control master solenoid valve (maybe more consistent to do garden/coop/PUT: just like GET but differentiate active and passive resources)
  *    - garden/census/ping - all listening devices answer with an "I'm here"-type response
  *    
  * Notes:
+ *  - Based on master_irrigation_MQTT.ino which was intended for robot garden fish tank
  *  - To test mqtt:
  *    - check if mosquitto is running (run mosquitto in a terminal. you'll get an error if it' already running)
+ *      or better: run >pgrep mosquitto
  *    - subscribe: mosquitto_sub -t garden/tank-monitor/water-level -d // -d is for debugging - leave off for cleaner output - alternately use -v for verbose
  *      or: mosquitto_sub -h 192.168.1.67 -t "#" -v (listen to everything in verbose mode
  *    - publish: mosquitto_pub -t 'garden/master-irrigation/led/PUT' -m '0'
  *  - pubsub library (http://pubsubclient.knolleary.net/api.html):
  *    - sketch will reconnect to the server if the connection is lost using a non-blocking reconnect function. (See the 'mqtt_reconnect_nonblocking' example)  
  *  
- * To do:
+ * To do: (includes leftovers from master irrigation sketch)
+ *  - drop enum code in globals?
  *  - add failsafe - turn off relay when lose connection
  *  - update client.publish(...) in reconnect() - should provide full status string 
  *  - remove msgString code
  *  - mqtt:
- *    - implement callbacks for 
+ *    - implement GET (and PUT) callbacks for 
  *      - ping 
  *      - status (server ip address, uptime, controller state
  *    - pretty up mqttCallback by wrapping strcmp lines in simpler handler
  *  - use EEPROM (or spi_flash_write and spi_flash_read) to save configuration values
  *  - Webserver:
- *    - (done) create a status page (to show current measurements) and add option for adjusting reload frequency
+ *    - update status page (add option for adjusting reload frequency
  *    - create interface for updating configuration settings.
  *  - implement a handler for listing resources (motion, light, temp, etc.)
  *  - have list of subs and pubs. 
@@ -51,13 +64,13 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 
-const char* deviceID = "master-irrigation";
+const char* deviceID = "coop_monitor";
 
 ESP8266WiFiMulti wifiMulti;
 ESP8266WebServer server(80);
 
 //mqtt
-const char* mqtt_server = "192.168.1.67"; // home
+const char* mqtt_server = "192.168.1.87"; // home - raspi1 connected by ethernet to router (as of 6/8/17)
 //const char* mqtt_server = "192.168.50.27"; // i-gate
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -75,7 +88,7 @@ states status = OFF;
 String statusString = "off";
 
 // prototypes
-void setup_wifi();
+//void setup_wifi(); - needed?
 void mqttLoop();
 void mqttCallback(char* topic, byte* payload, unsigned int length);
 boolean reconnect();

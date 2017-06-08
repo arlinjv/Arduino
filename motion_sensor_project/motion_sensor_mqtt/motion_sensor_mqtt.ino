@@ -1,4 +1,5 @@
-/* Basic concept:
+/* Equipment - for NodeMCU boards (Amica labelled)
+ *  Basic concept:
  *  - connect to mqtt server
  *  - publish sensor activations to relevant topic
  *  - run webserver for status and configuration purposes.
