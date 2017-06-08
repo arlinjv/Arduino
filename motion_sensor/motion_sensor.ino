@@ -35,7 +35,7 @@ ESP8266WebServer server(80);
 WiFiClient client; // should still need for connecting to another website
 
 // Hardware declarations: ------------------------------------------
-const int sensorPin = D7;
+const int sensorPin = 14;
 
 // prototypes
 bool    sensorActivated();

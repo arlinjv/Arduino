@@ -56,7 +56,9 @@ const char* sensorID = "distance-sensor"; // may want to drop this
 ESP8266WiFiMulti wifiMulti;
 ESP8266WebServer server(80);
 
-const char* mqtt_server = "192.168.1.67";
+//const char* mqtt_server = "192.168.1.67"; //home
+const char* mqtt_server = "192.168.50."; // i-gate - varies. need to get fixed ip
+
 WiFiClient espClient;
 PubSubClient client(espClient);
 char msg[50]; // for publish // use String object and reserve in setup instead?
